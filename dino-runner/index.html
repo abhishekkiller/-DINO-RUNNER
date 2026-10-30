@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="description" content="Dino Runner - High-speed endless arcade runner featuring 60-second challenge mode, local leaderboard, Web Audio procedural soundtrack, power-ups, and day/night desert cycles.">
+    <title>Dino Runner – Endless Running Arcade Game</title>
+    
+    <!-- Google Fonts for Retro-Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="gameApp" class="game-app">
+        <!-- Arcade Cabinet / Game Frame Container -->
+        <main class="arcade-cabinet">
+            <!-- Header Bar -->
+            <header class="cabinet-topbar">
+                <div class="topbar-branding">
+                    <span class="brand-dino-icon">🦖</span>
+                    <h1 class="brand-title">DINO RUNNER</h1>
+                </div>
+                <div class="topbar-actions">
+                    <button id="btnSoundToggle" class="icon-btn" aria-label="Toggle Sound" title="Sound Mute/Unmute">🔊</button>
+                    <button id="btnPause" class="icon-btn" aria-label="Pause Game" title="Pause Game (P)">⏸️</button>
+                </div>
+            </header>
+
+            <!-- Canvas Viewport -->
+            <div id="canvasContainer" class="canvas-container">
+                <canvas id="gameCanvas"></canvas>
+
+                <!-- In-Game HUD -->
+                <div id="gameHud" class="game-hud hidden">
+                    <div class="hud-left">
+                        <div class="hud-badge mode-badge" id="hudModeBadge">ENDLESS</div>
+                        <div class="hud-badge diff-badge" id="hudDifficultyBadge">MEDIUM</div>
+                        <div id="hudComboBadge" class="hud-badge combo-badge hidden">
+                            <span class="combo-icon">⚡</span> COMBO <span id="hudComboMultiplier">1.5x</span>
+                        </div>
+                    </div>
+
+                    <!-- Center Challenge Timer (60s mode) -->
+                    <div id="hudChallengeTimer" class="hud-challenge-timer hidden">
+                        <span class="timer-icon">⏱️</span>
+                        <span id="hudTimerSeconds">60</span>s
+                    </div>
+
+                    <div class="hud-right">
+                        <div class="score-display">
+                            <span class="score-label">HI</span>
+                            <span id="hudHighScore" class="score-number">00000</span>
+                        </div>
+                        <div class="score-display current">
+                            <span class="score-label">SCORE</span>
+                            <span id="hudScore" class="score-number">00000</span>
+                        </div>
+                    </div>
+
+                    <!-- Active Power-Up Trays -->
+                    <div class="powerup-tray">
+                        <div id="hudPowerupShield" class="powerup-pill shield-pill hidden">
+                            <span class="pw-icon">🛡️</span>
+                            <span class="pw-text">SHIELD</span>
+                        </div>
+                        <div id="hudPowerupBoost" class="powerup-pill boost-pill hidden">
+                            <span class="pw-icon">⚡</span>
+                            <div class="pw-progress-bar"><div id="boostProgress" class="pw-progress-fill"></div></div>
+                        </div>
+                        <div id="hudPowerupDouble" class="powerup-pill double-pill hidden">
+                            <span class="pw-icon">2X</span>
+                            <div class="pw-progress-bar"><div id="doubleProgress" class="pw-progress-fill"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Virtual Touch Controls for Mobile -->
+                <div id="touchControls" class="touch-controls hidden">
+                    <button id="btnTouchDuck" class="touch-btn duck-btn" aria-label="Duck">
+                        <span class="touch-icon">⬇️</span>
+                        <span class="touch-label">DUCK</span>
+                    </button>
+                    <button id="btnTouchJump" class="touch-btn jump-btn" aria-label="Jump">
+                        <span class="touch-icon">⬆️</span>
+                        <span class="touch-label">JUMP</span>
+                    </button>
+                </div>
+
+                <!-- 3-2-1-GO Countdown Overlay -->
+                <div id="countdownOverlay" class="screen-overlay countdown-overlay hidden">
+                    <div id="countdownText" class="countdown-text">3</div>
+                </div>
+
+                <!-- Main Menu Overlay -->
+                <div id="mainMenuOverlay" class="screen-overlay menu-overlay">
+                    <div class="menu-modal">
+                        <div class="menu-hero">
+                            <div class="hero-dino-sprite">🦖</div>
+                            <h2 class="hero-title">DINO RUNNER</h2>
+                            <p class="hero-subtitle">ENDLESS DESERT SURVIVAL</p>
+                        </div>
+
+                        <!-- Player Name Input -->
+                        <div class="player-input-card">
+                            <label for="playerNameInput" class="input-label">RUNNER TAG:</label>
+                            <input type="text" id="playerNameInput" class="player-name-field" maxlength="15" placeholder="Enter Runner Tag" value="DinoMaster">
+                        </div>
+
+                        <!-- Difficulty Selection -->
+                        <div class="difficulty-section">
+                            <div class="section-label">SELECT DIFFICULTY</div>
+                            <div class="diff-btn-group">
+                                <button class="diff-btn" data-diff="easy">
+                                    <span class="diff-name">EASY</span>
+                                    <span class="diff-desc">Gentle Pace</span>
+                                </button>
+                                <button class="diff-btn active" data-diff="medium">
+                                    <span class="diff-name">MEDIUM</span>
+                                    <span class="diff-desc">Classic Speed</span>
+                                </button>
+                                <button class="diff-btn" data-diff="hard">
+                                    <span class="diff-name">HARD</span>
+                                    <span class="diff-desc">Rapid Hazard</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Primary Action Buttons -->
+                        <div class="menu-actions">
+                            <button id="btnPlayEndless" class="menu-btn btn-primary">
+                                <span class="btn-icon">▶</span> PLAY ENDLESS
+                            </button>
+                            <button id="btnPlayChallenge" class="menu-btn btn-accent">
+                                <span class="btn-icon">⏱️</span> 60-SEC CHALLENGE
+                            </button>
+                            <button id="btnPlayDaily" class="menu-btn btn-daily">
+                                <span class="btn-icon">✨</span> DAILY QUEST
+                            </button>
+                        </div>
+
+                        <!-- Sub Menu Grid -->
+                        <div class="menu-sub-grid">
+                            <button id="btnLeaderboard" class="sub-btn">
+                                <span class="sub-icon">🏆</span> LEADERBOARD
+                            </button>
+                            <button id="btnHowToPlay" class="sub-btn">
+                                <span class="sub-icon">🎮</span> HOW TO PLAY
+                            </button>
+                            <button id="btnAchievements" class="sub-btn">
+                                <span class="sub-icon">🎖️</span> ACHIEVEMENTS
+                            </button>
+                            <button id="btnSettings" class="sub-btn">
+                                <span class="sub-icon">⚙️</span> SETTINGS
+                            </button>
+                        </div>
+
+                        <!-- High Score Display Bar -->
+                        <div class="menu-high-score-banner">
+                            <span class="star-icon">⭐</span>
+                            <span>PERSONAL BEST:</span>
+                            <strong id="menuHighScore">0</strong> PTS
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pause Menu Modal -->
+                <div id="pauseOverlay" class="screen-overlay pause-overlay hidden">
+                    <div class="glass-dialog pause-dialog">
+                        <h3 class="dialog-title">GAME PAUSED</h3>
+                        <div class="dialog-btn-list">
+                            <button id="btnResume" class="menu-btn btn-primary">▶ RESUME</button>
+                            <button id="btnRestart" class="menu-btn btn-secondary">🔄 RESTART</button>
+                            <button id="btnPauseSoundToggle" class="menu-btn btn-secondary">🔊 SOUND: ON</button>
+                            <button id="btnPauseHome" class="menu-btn btn-tertiary">🏠 MAIN MENU</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Game Over Modal -->
+                <div id="gameOverModal" class="screen-overlay game-over-overlay hidden">
+                    <div class="glass-dialog game-over-dialog">
+                        <div id="newHighScoreBanner" class="high-score-banner hidden">
+                            🎉 NEW PERSONAL BEST! 🎉
+                        </div>
+                        <h3 id="gameOverTitle" class="dialog-title">GAME OVER</h3>
+                        
+                        <!-- Scoreboard Card -->
+                        <div class="game-over-stats">
+                            <div class="stat-row highlight">
+                                <span class="stat-label">FINAL SCORE</span>
+                                <span id="finalScoreValue" class="stat-val">0</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">BEST SCORE</span>
+                                <span id="bestScoreValue" class="stat-val">0</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">MODE</span>
+                                <span id="goModeValue" class="stat-val">Endless</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">DIFFICULTY</span>
+                                <span id="goDifficultyValue" class="stat-val">MEDIUM</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">RANK</span>
+                                <span id="goRankValue" class="stat-val">#1 in Top 10</span>
+                            </div>
+                        </div>
+
+                        <!-- Game Over Actions -->
+                        <div class="game-over-buttons">
+                            <button id="btnPlayAgain" class="menu-btn btn-primary">
+                                <span>🔄</span> PLAY AGAIN
+                            </button>
+                            <button id="btnShareScore" class="menu-btn btn-accent">
+                                <span>📤</span> SHARE SCORE
+                            </button>
+                            <button id="btnGoLeaderboard" class="menu-btn btn-secondary">
+                                <span>🏆</span> LEADERBOARD
+                            </button>
+                            <button id="btnGoHome" class="menu-btn btn-tertiary">
+                                <span>🏠</span> MAIN MENU
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leaderboard Modal -->
+                <div id="leaderboardModal" class="screen-overlay modal-overlay hidden">
+                    <div class="glass-dialog leaderboard-dialog">
+                        <div class="dialog-header">
+                            <h3 class="dialog-title">🏆 LOCAL LEADERBOARD</h3>
+                            <button id="btnCloseLeaderboard" class="close-x-btn" aria-label="Close">✕</button>
+                        </div>
+
+                        <!-- Category Tabs -->
+                        <div class="lb-tabs">
+                            <button class="lb-tab-btn" data-cat="easy">EASY</button>
+                            <button class="lb-tab-btn active" data-cat="medium">MEDIUM</button>
+                            <button class="lb-tab-btn" data-cat="hard">HARD</button>
+                            <button class="lb-tab-btn" data-cat="challenge">60s CHALLENGE</button>
+                        </div>
+
+                        <!-- Leaderboard Table -->
+                        <div class="table-wrapper">
+                            <table class="leaderboard-table">
+                                <thead>
+                                    <tr>
+                                        <th>RANK</th>
+                                        <th>PLAYER</th>
+                                        <th>SCORE</th>
+                                        <th>DIFF</th>
+                                        <th>DATE</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaderboardBody">
+                                    <!-- Dynamically filled -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="dialog-footer">
+                            <button id="btnClearLeaderboard" class="btn-danger-outline">🗑️ CLEAR BOARD</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Confirm Clear Modal -->
+                <div id="confirmClearModal" class="screen-overlay confirm-overlay hidden">
+                    <div class="glass-dialog confirm-dialog">
+                        <h4>CLEAR SCORES?</h4>
+                        <p>Are you sure you want to delete all saved scores for this category? This cannot be undone.</p>
+                        <div class="confirm-actions">
+                            <button id="btnConfirmClearYes" class="menu-btn btn-danger">YES, CLEAR</button>
+                            <button id="btnConfirmClearNo" class="menu-btn btn-secondary">CANCEL</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- How to Play Modal -->
+                <div id="howToPlayModal" class="screen-overlay modal-overlay hidden">
+                    <div class="glass-dialog guide-dialog">
+                        <div class="dialog-header">
+                            <h3 class="dialog-title">🎮 HOW TO PLAY</h3>
+                            <button id="btnCloseHowToPlay" class="close-x-btn" aria-label="Close">✕</button>
+                        </div>
+                        <div class="guide-content">
+                            <div class="guide-section">
+                                <h4>KEYBOARD CONTROLS</h4>
+                                <ul class="control-list">
+                                    <li><kbd>SPACE</kbd> or <kbd>↑</kbd> : Jump over cacti & low hazards</li>
+                                    <li><kbd>↓</kbd> or <kbd>S</kbd> : Duck under low-flying pterodactyls</li>
+                                    <li><kbd>P</kbd> or <kbd>ESC</kbd> : Pause game</li>
+                                </ul>
+                            </div>
+                            <div class="guide-section">
+                                <h4>TOUCH / MOUSE CONTROLS</h4>
+                                <ul class="control-list">
+                                    <li><strong>Tap Upper Canvas / Click</strong>: Jump</li>
+                                    <li><strong>Swipe Down / Virtual Duck</strong>: Duck</li>
+                                </ul>
+                            </div>
+                            <div class="guide-section">
+                                <h4>POWER-UPS</h4>
+                                <div class="guide-powerups-grid">
+                                    <div class="guide-pw-card">
+                                        <span class="gp-icon">🛡️</span>
+                                        <strong>SHIELD</strong>
+                                        <span>Absorbs 1 obstacle hit safely.</span>
+                                    </div>
+                                    <div class="guide-pw-card">
+                                        <span class="gp-icon">⚡</span>
+                                        <strong>SPEED BOOST</strong>
+                                        <span>Invincible sprint! Smashes obstacles for +150 bonus.</span>
+                                    </div>
+                                    <div class="guide-pw-card">
+                                        <span class="gp-icon">2X</span>
+                                        <strong>DOUBLE SCORE</strong>
+                                        <span>Earn 2x score for 10 seconds.</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="guide-section">
+                                <h4>PRO TIPS</h4>
+                                <p>🎯 <strong>Near-Miss Bonus</strong>: Jump or duck razor-close to obstacles to earn +50 near-miss points!</p>
+                                <p>⚡ <strong>Combo Multipliers</strong>: Clear obstacles in quick succession to ramp your score multiplier up to 4.0x!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Achievements Modal -->
+                <div id="achievementsModal" class="screen-overlay modal-overlay hidden">
+                    <div class="glass-dialog achievements-dialog">
+                        <div class="dialog-header">
+                            <h3 class="dialog-title">🎖️ ACHIEVEMENTS</h3>
+                            <button id="btnCloseAchievements" class="close-x-btn" aria-label="Close">✕</button>
+                        </div>
+                        <div id="achievementsListContainer" class="achievements-grid">
+                            <!-- Dynamically generated achievement cards -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Modal -->
+                <div id="settingsModal" class="screen-overlay modal-overlay hidden">
+                    <div class="glass-dialog settings-dialog">
+                        <div class="dialog-header">
+                            <h3 class="dialog-title">⚙️ SETTINGS</h3>
+                            <button id="btnCloseSettings" class="close-x-btn" aria-label="Close">✕</button>
+                        </div>
+                        <div class="settings-content">
+                            <div class="setting-item">
+                                <label for="settingMasterVol">Master Volume</label>
+                                <input type="range" id="settingMasterVol" min="0" max="1" step="0.05" value="0.8">
+                            </div>
+                            <div class="setting-item">
+                                <label for="settingSfxVol">Sound FX Volume</label>
+                                <input type="range" id="settingSfxVol" min="0" max="1" step="0.05" value="0.8">
+                            </div>
+                            <div class="setting-item">
+                                <label for="settingBgmVol">Music (BGM) Volume</label>
+                                <input type="range" id="settingBgmVol" min="0" max="1" step="0.05" value="0.35">
+                            </div>
+                            <div class="setting-item toggle-item">
+                                <span>Screen Shake on Hit</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="settingShake" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item toggle-item">
+                                <span>Particle FX & Trails</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="settingParticles" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label for="settingTimeOfDay">Time of Day Mode</label>
+                                <select id="settingTimeOfDay" class="setting-select">
+                                    <option value="dynamic">Dynamic (Day & Night Transitions)</option>
+                                    <option value="day">Always Daytime</option>
+                                    <option value="night">Always Nighttime</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Floating Toast Alert Container -->
+                <div id="toastContainer" class="toast-container"></div>
+            </div>
+
+            <!-- Arcade Footnote & Quick Help -->
+            <footer class="cabinet-footer">
+                <span class="controls-hint desktop-only">Jump: <kbd>SPACE</kbd> / <kbd>↑</kbd> | Duck: <kbd>↓</kbd> | Pause: <kbd>P</kbd></span>
+                <span class="controls-hint mobile-only">Tap Screen to Jump | Swipe Down to Duck</span>
+                <span class="version-tag">v2.5 Arcade Edition</span>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scripts (Classic sequential loading for seamless file:// and http:// compatibility) -->
+    <script src="js/audio.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/entities.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
